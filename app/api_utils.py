@@ -11,7 +11,7 @@ def decode_content(data):
     try:
         # 若判斷結果信心度超過 0.5
         if det['confidence'] > 0.5:
-            logger.info("encoding: %s" % det['encoding'])
+            #logger.info("encoding: %s" % det['encoding'])
             if det['encoding'] == 'big-5' or det['encoding'] == 'Big5':
                 # cp950包含big5
                 txt = data.content.decode('big5')

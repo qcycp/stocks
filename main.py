@@ -2,7 +2,7 @@ import traceback
 
 import datetime
 from app.foundation import logger
-from app.stocks import update_stocks, update_data_by_day, get_max_min_dy
+from app.stocks import update_stocks, update_data_by_day, get_max_min_dy, get_stocks
 from globals import db
 
 if __name__ == '__main__':
@@ -10,6 +10,7 @@ if __name__ == '__main__':
         try:
             print("1) 查詢歷年股價及殖利率")
             print("2) 更新股票清單")
+            print("3) 取得歷年股價")
             print("q) 離開")
             op = input('請選取操作: ')
             if op == '1':
@@ -20,6 +21,8 @@ if __name__ == '__main__':
                     get_max_min_dy(sid)
             elif op == '2':
                 update_stocks()
+            elif op == '3':
+                get_stocks()
             elif op == 'Q' or op == 'q':
                 break
             else:

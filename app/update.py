@@ -1,12 +1,15 @@
 import datetime
 import json
+import os
 from app.foundation import logger
 import app.constants as CONST
 
 class UpdateInfo(object):
     def __init__(self):
-        with open(CONST.UPDATE_FILE, "r") as f:
-            self.data = json.load(f)
+        self.data = dict()
+        if os.path.exists(CONST.UPDATE_FILE):
+            with open(CONST.UPDATE_FILE, "r") as f:
+                self.data = json.load(f)
 
     def update(self):
         with open(CONST.UPDATE_FILE, "w") as f:

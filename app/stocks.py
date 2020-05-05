@@ -1,5 +1,6 @@
 import datetime
 import json
+import os
 import requests
 import time
 import traceback
@@ -201,15 +202,61 @@ def get_max_min_dy(stock_id):
     except:
         logger.error(traceback.format_exc())
 
-
 def get_max_min_dy2(stock_id):
     target_url = url + str(stock_id)
 
     try:
         res = get(target_url, headers)
         if res is not None:
-            df = pd.read_html(res)[11]
-            for index, row in df.iterrows():
-              logger.info(row)
+            soup = BeautifulSoup(res, "lxml")
+            #logger.info(soup.prettify())
+            tbls = soup.find_all('table', {'class': 'solid_1_padding_4_0_tbl', 'width': '100%', 'bgcolor': '#d2d2d2'})
+            for tbl in tbls:
+                trs = tbl.find_all('tr')
+                logger.info('%4s  %6s  %6s  %6s  %6s' % ("年度", "最高", "最低", "平均", "殖利率"))
+
+                if len(trs) < 9:
+                    return
+
+                valid = CURRENT_YEAR
+                nums = list()
+                #for i in range(4, len(trs)):
+                for i in range(4, 10):
+                    tds = trs[i].find_all('td')
+                    if len(tds) >= 19:
+                        year = tds[12].get_text()
+                        max = tds[13].get_text()
+                        min = tds[14].get_text()
+                        average = tds[15].get_text()
+                        dy = tds[18].get_text()
+                        if year.isdigit() and int(year) == valid:
+                            logger.info('%6s  %8s  %8s  %8s  %8s' % (year, max, min, average, dy))
+                            valid -= 1
+                            nums.append(float(min))
+                import numpy as np
+                print(np.std(np.array(nums), ddof=1))
     except:
         logger.error(traceback.format_exc())
+
+def get_stocks():
+    fs = open("stocks")
+    line = fs.readline()
+    while line:
+        line = line.strip('\n')
+
+        target_url = url + str(line)
+        while True:
+            time.sleep(5)
+            try:
+                res = get(target_url, headers)
+                if res is not None:
+                    logger.info(str(line))
+                    path = os.path.join('data', str(line))
+                    with open(path, "w") as f:
+                        f.write(res)
+                    break
+            except:
+                logger.error(traceback.format_exc())
+
+        line = fs.readline()
+    fs.close()
