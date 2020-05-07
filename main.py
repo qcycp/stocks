@@ -4,7 +4,7 @@ import traceback
 import datetime
 from config import DATADIR, RAWDIR
 from app.foundation import logger
-from app.stocks import update_stocks, update_data_by_day, get_max_min_dy, calculate_std, update_stocks_raw_data
+from app.stocks import update_stocks, update_data_by_day, get_max_min_dy, calculate_std, update_stocks_raw_data, get_effective_tracking_list
 from globals import db
 
 if __name__ == '__main__':
@@ -19,6 +19,7 @@ if __name__ == '__main__':
             print("2) 計算標準差")
             print("3) 更新股票清單")
             print("4) 取得歷年股價")
+            print("5) 篩選波動穩動的最低股價清單")
             print("q) 離開")
             op = input('請選取操作: ')
             if op == '1':
@@ -37,6 +38,8 @@ if __name__ == '__main__':
                 update_stocks()
             elif op == '4':
                 update_stocks_raw_data()
+            elif op == '5':
+                get_effective_tracking_list()
             elif op == 'Q' or op == 'q':
                 break
             else:

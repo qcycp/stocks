@@ -169,7 +169,7 @@ def get_data_by_month(date, stock_number):
 
 CURRENT_YEAR = 2020
 
-def get_max_min_dy(stock_id, online=True):
+def get_max_min_dy(stock_id, online=False):
     try:
         res = None
         if online:
@@ -208,6 +208,74 @@ def get_max_min_dy(stock_id, online=True):
     except:
         logger.error(traceback.format_exc())
 
+def get_effective_tracking_list(now=True):
+    TRACKING_YEARS = 5
+    VOLUME_THRESHOLD = 250
+    STD_THRESHOLD = 2
+    PROFIT_THRESHOLD = 0.3
+    READY_TO_BUY_THRESHOLD = 0.05
+    try:
+        fs = open(CONST.STOCKS_FILE)
+        line = fs.readline()
+        while line:
+            line = line.strip('\n')
+            target = os.path.join(RAWDIR, str(line))
+
+            if os.path.exists(target):
+                with open(target, 'r') as f:
+                    res = f.read()
+
+            if res is not None and '瀏覽量異常' not in res:
+                volume = get_volume(res)
+                close = 0
+                if now:
+                    close = get_close(res)
+                # condition 1: 成交量 > 250
+                if volume > VOLUME_THRESHOLD:
+                    soup = BeautifulSoup(res, "lxml")
+                    tbls = soup.find_all('table', {'class': 'solid_1_padding_4_0_tbl', 'width': '100%', 'bgcolor': '#d2d2d2'})
+                    for tbl in tbls:
+                        trs = tbl.find_all('tr')
+
+                        valid = CURRENT_YEAR
+                        max_list = list()
+                        min_list = list()
+                        for i in range(4, len(trs)):
+                            tds = trs[i].find_all('td')
+                            if len(tds) >= 19:
+                                year = tds[12].get_text()
+                                max = tds[13].get_text()
+                                min = tds[14].get_text()
+                                if year.isdigit() and int(year) == valid:
+                                    valid -= 1
+                                    max_list.append(float(max))
+                                    min_list.append(float(min))
+                                    if len(max_list) == TRACKING_YEARS:
+                                        break
+                                else:
+                                    break
+
+                    # condition 2: 歷史紀錄超過5年
+                    if len(max_list) == TRACKING_YEARS:
+                        #logger.info('STD of last %s year: %s' % (len(min_list), np.std(np.array(min_list), ddof=1)))
+                        std = np.std(np.array(min_list), ddof=1)
+                        # condition 3: 最低股價樣本標準差 < 2
+                        if std < STD_THRESHOLD:
+                            avg_max = sum(max_list) / len(max_list)
+                            avg_min = sum(min_list) / len(min_list)
+                            # condition 4: 平均最高股價比平均最低股價 > 30%
+                            if (avg_max - avg_min)/avg_max > PROFIT_THRESHOLD:
+                                if now:
+                                    # 挑選當前股價適合進場的標的: 當前股價大於平均最低股價不超過5%
+                                    if (close - avg_min)/avg_min < READY_TO_BUY_THRESHOLD:
+                                        logger.info('%s' % line)
+                                else:
+                                    logger.info('%s : %s' % (line, std))
+
+            line = fs.readline()
+    except:
+        logger.error(traceback.format_exc())
+
 def calculate_std(stock_id, _range=5, online=False):
     try:
         res = None
@@ -240,7 +308,6 @@ def calculate_std(stock_id, _range=5, online=False):
                         if year.isdigit() and int(year) == valid:
                             valid -= 1
                             nums.append(float(min))
-                            print(nums)
 
                             if len(nums) == _range:
                                 break
@@ -309,8 +376,16 @@ def get_volume(text):
     tbl = soup.find('table', {'class': 'solid_1_padding_3_2_tbl', 'border': '0', 'cellspacing': '0', 'cellpadding': '0', 'style': 'width:100%;font-size:11pt;'})
     if tbl:
         trs = tbl.find_all('tr')
-        logger.info(len(trs))
         tds = trs[5].find_all('td')
-        logger.info(len(tds))
         volume = tds[0].get_text().replace(',', '')
     return int(volume)
+
+def get_close(text):
+    close = 0
+    soup = BeautifulSoup(text, "lxml")
+    tbl = soup.find('table', {'class': 'solid_1_padding_3_2_tbl', 'border': '0', 'cellspacing': '0', 'cellpadding': '0', 'style': 'width:100%;font-size:11pt;'})
+    if tbl:
+        trs = tbl.find_all('tr')
+        tds = trs[3].find_all('td')
+        close = tds[0].get_text()
+    return float(close)
