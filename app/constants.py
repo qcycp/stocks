@@ -1,12 +1,14 @@
 import os
+from config import DATADIR
 
-APPDIR = os.path.abspath(os.path.dirname(__file__))
-UPDATE_FILE = os.path.join(APPDIR, '..', 'data', 'update')
-DB_FILE = os.path.join(APPDIR, '..', 'data', 'data.db')
+UPDATE_FILE = os.path.join(DATADIR, 'update')
+DB_FILE = os.path.join(DATADIR, 'data.db')
+STOCKS_FILE = os.path.join(DATADIR, 'stocks')
 
 URL_TYPE_LISTED_COMPANY = "http://isin.twse.com.tw/isin/C_public.jsp?strMode=2"
 URL_TYPE_OTC_COMPANY = "http://isin.twse.com.tw/isin/C_public.jsp?strMode=4"
 URL_TYPE_EMERGING_STOCK_COMPANY = "http://isin.twse.com.tw/isin/C_public.jsp?strMode=5"
+GOODINFO_URL = "https://goodinfo.tw/StockInfo/StockDividendPolicy.asp?STOCK_ID="
 
 #每日收盤行情，自民國93年2月11日起提供
 #https://www.twse.com.tw/zh/page/trading/exchange/MI_INDEX.html

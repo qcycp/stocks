@@ -24,8 +24,8 @@ def decode_content(data):
         logger.error(traceback.format_exc())
     return txt
 
-def get(url, headers=None):
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Safari/537.36'}
+def get(url):
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.122 Safari/537.36'}
     retry = 0
     while retry < 3:
         try:
