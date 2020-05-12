@@ -17,19 +17,33 @@ from app.foundation import logger
 from config import RAWDIR
 from globals import db, update
 
+def reset_listed():
+    db.cursor.execute("UPDATE stock SET listed = 0")
+    db.commit()
+
 def add_stock(data):
     code = data[0].split()[0]
 
     db.cursor.execute("SELECT * FROM stock WHERE code=?", (code,))
     result = db.cursor.fetchone()
     if result is None:
-        db.cursor.execute("INSERT INTO stock(code, name, listed_day, listed_type, CFICode) VALUES(?, ?, ?, ?, ?)", \
+        db.cursor.execute("INSERT INTO stock(code, name, listed_day, listed_type, CFICode, listed) VALUES(?, ?, ?, ?, ?, ?)", \
                           (data[0].split()[0],
                            data[0].split()[1],
                            data[2].replace('/', '-'),
                            LISTED_TYPE.state_mapping_reverse[data[3]],
-                           data[5]))
+                           data[5],
+                           1))
         db.commit()
+
+def get_stock_list_from_db():
+    db.cursor.execute("SELECT * FROM stock")
+    results = db.cursor.fetchall()
+    with open(STOCK_LIST, 'w') as f:
+        for data in results:
+            if data[6] == 1 and data[5] in CONST.VALID_CFICode:
+                f.write(data[1])
+                f.write('\n')
 
 def update_listed_company(url):
     data = get(url)
@@ -46,19 +60,25 @@ def update_listed_company(url):
         #with open('test', 'a', encoding='UTF-8') as f:
         #    f.write(df.to_string(header = False, index = False))
         for index, row in df.iterrows():
-            if row[3] in CONST.VALID_LISTED_TYPE:
+            if row[3] in CONST.VALID_LISTED_TYPE and row[5] in CONST.VALID_CFICode:
                 add_stock(row)
     else:
         logger.error(f"Cannot get data from {url}")
 
 def update_stocks():
     #上次更新的日期
-    last_update = update.data['stock']
+    if 'stock' in update.data:
+        last_update = update.data['stock']
+    else:
+        last_update = None
 
     today = datetime.date.today().strftime('%Y%m%d')
-    if last_update == today:
+    if last_update is not None and last_update == today:
         logger.info("The data is up to date!!")
         return
+
+    #for all data, reset to False
+    reset_listed()
 
     #上市
     logger.info("更新上市股票...")
@@ -73,7 +93,6 @@ def update_stocks():
     update_listed_company(CONST.URL_TYPE_EMERGING_STOCK_COMPANY)
 
     update.update_stock_date()
-
 
 def add_daily(date, info):
     db.cursor.execute(f"SELECT * FROM daily WHERE date='{date}' and code='{info.code}'")
@@ -167,8 +186,6 @@ def get_data_by_month(date, stock_number):
     logger.info(data)
     #return pd.DataFrame(data['data'],columns=data['fields'])
 
-CURRENT_YEAR = 2020
-
 def get_max_min_dy(stock_id, online=False):
     try:
         res = None
@@ -192,7 +209,7 @@ def get_max_min_dy(stock_id, online=False):
             for tbl in tbls:
                 trs = tbl.find_all('tr')
                 logger.info('%4s  %6s  %6s  %6s  %6s' % ("年度", "最高", "最低", "平均", "殖利率"))
-                valid = CURRENT_YEAR
+                valid = CONST.CURRENT_YEAR
                 for i in range(4, len(trs)):
                     #logger.info(trs[i])
                     tds = trs[i].find_all('td')
@@ -216,7 +233,9 @@ def get_effective_tracking_list(now=True):
     READY_TO_BUY_THRESHOLD = 0.05
     VOLATILITY_THRESHOLD = 0.2
     try:
-        fs = open(CONST.STOCKS_FILE)
+        if not os.path.exists(CONST.STOCK_LIST):
+            get_stock_list_from_db()
+        fs = open(CONST.STOCK_LIST)
         line = fs.readline()
         while line:
             line = line.strip('\n')
@@ -263,55 +282,15 @@ def get_effective_tracking_list(now=True):
     except:
         logger.error(traceback.format_exc())
 
-def calculate_std(stock_id, _range=5, online=False):
-    try:
-        res = None
-        if online:
-            target_url = GOODINFO_URL + str(stock_id)
-            res = get(target_url)
-        else:
-            target = os.path.join(RAWDIR, str(stock_id))
-            if os.path.exists(target):
-                with open(target, 'r') as f:
-                    res = f.read()
-
-        if res is not None and '瀏覽量異常' not in res:
-            soup = BeautifulSoup(res, "lxml")
-            #logger.info(soup.prettify())
-            tbls = soup.find_all('table', {'class': 'solid_1_padding_4_0_tbl', 'width': '100%', 'bgcolor': '#d2d2d2'})
-            for tbl in tbls:
-                trs = tbl.find_all('tr')
-
-                valid = CURRENT_YEAR
-                nums = list()
-                for i in range(4, len(trs)):
-                    tds = trs[i].find_all('td')
-                    if len(tds) >= 19:
-                        year = tds[12].get_text()
-                        max = tds[13].get_text()
-                        min = tds[14].get_text()
-                        average = tds[15].get_text()
-                        dy = tds[18].get_text()
-                        if year.isdigit() and int(year) == valid:
-                            valid -= 1
-                            nums.append(float(min))
-
-                            if len(nums) == _range:
-                                break
-                        else:
-                            break
-
-                logger.info('STD of last %s year: %s' % (len(nums), np.std(np.array(nums), ddof=1)))
-    except:
-        logger.error(traceback.format_exc())
-
-def update_stocks_raw_data():
+def update_stocks_raw_data_from_goodinfo():
     today = datetime.date.today()
     today = today.strftime('%m/%d')
     logger.info('today : %s' % today)
 
     try:
-        fs = open(CONST.STOCKS_FILE)
+        if not os.path.exists(CONST.STOCK_LIST):
+            get_stock_list_from_db()
+        fs = open(CONST.STOCK_LIST)
         line = fs.readline()
         while line:
             line = line.strip('\n')
@@ -382,13 +361,15 @@ def get_max_min_list(soup):
     tbls = soup.find_all('table', {'class': 'solid_1_padding_4_0_tbl', 'width': '100%', 'bgcolor': '#d2d2d2'})
     for tbl in tbls:
         trs = tbl.find_all('tr')
-        valid = CURRENT_YEAR
+        valid = CONST.CURRENT_YEAR
         for i in range(4, len(trs)):
             tds = trs[i].find_all('td')
             if len(tds) >= 19:
                 year = tds[12].get_text()
                 max = tds[13].get_text()
                 min = tds[14].get_text()
+                average = tds[15].get_text()
+                dy = tds[18].get_text()
                 if year.isdigit() and int(year) == valid:
                     valid -= 1
                     max_list.append(float(max))

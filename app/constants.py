@@ -3,7 +3,9 @@ from config import DATADIR
 
 UPDATE_FILE = os.path.join(DATADIR, 'update')
 DB_FILE = os.path.join(DATADIR, 'data.db')
-STOCKS_FILE = os.path.join(DATADIR, 'stocks')
+STOCK_LIST = os.path.join(DATADIR, 'stock_list')
+
+CURRENT_YEAR = 2020
 
 URL_TYPE_LISTED_COMPANY = "http://isin.twse.com.tw/isin/C_public.jsp?strMode=2"
 URL_TYPE_OTC_COMPANY = "http://isin.twse.com.tw/isin/C_public.jsp?strMode=4"
@@ -15,6 +17,7 @@ GOODINFO_URL = "https://goodinfo.tw/StockInfo/StockDividendPolicy.asp?STOCK_ID="
 #https://www.twse.com.tw/exchangeReport/MI_INDEX?response=csv&date=20040211&type=ALLBUT0999
 
 VALID_LISTED_TYPE = ['上市', '上櫃', '興櫃']
+VALID_CFICode = ['ESVUFR', 'ESVTFR', 'CEOGBU', 'CEOGCU', 'CEOGDU', 'CEOGEU', 'CEOGMU', 'CEOIBU', 'CEOIEU', 'CEOIRU', 'CEOJEU', 'CEOJLU']
 
 class LISTED_TYPE:
     TYPE_LISTED_COMPANY = 0

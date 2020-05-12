@@ -14,7 +14,7 @@ def decode_content(data):
             #logger.info("encoding: %s" % det['encoding'])
             if det['encoding'] == 'big-5' or det['encoding'] == 'Big5':
                 # cp950包含big5
-                txt = data.content.decode('big5')
+                txt = data.content.decode('cp950')
             else:
                 txt = data.content.decode(det['encoding'])
         else:
