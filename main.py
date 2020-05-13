@@ -2,7 +2,7 @@ import os
 import traceback
 
 import datetime
-from config import DATADIR, RAWDIR
+from config import DATADIR, LOGDIR, RAWDIR
 from app.foundation import logger
 from app.stocks import update_stocks
 from app.stocks import update_data_by_day
@@ -14,6 +14,8 @@ from globals import db
 if __name__ == '__main__':
     if not os.path.exists(DATADIR):
         os.makedirs(DATADIR, exist_ok=True)
+    if not os.path.exists(LOGDIR):
+        os.makedirs(LOGDIR, exist_ok=True)
     if not os.path.exists(RAWDIR):
         os.makedirs(RAWDIR, exist_ok=True)
 

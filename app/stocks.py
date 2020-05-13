@@ -39,7 +39,7 @@ def add_stock(data):
 def get_stock_list_from_db():
     db.cursor.execute("SELECT * FROM stock")
     results = db.cursor.fetchall()
-    with open(STOCK_LIST, 'w') as f:
+    with open(CONST.STOCK_LIST, 'w') as f:
         for data in results:
             if data[6] == 1 and data[5] in CONST.VALID_CFICode:
                 f.write(data[1])
