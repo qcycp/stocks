@@ -230,14 +230,24 @@ def get_effective_tracking_list(now=True):
     VOLUME_THRESHOLD = 250
     STD_THRESHOLD = 2
     PROFIT_THRESHOLD = 0.3
-    READY_TO_BUY_THRESHOLD = 0.05
-    VOLATILITY_THRESHOLD = 0.2
+    READY_TO_BUY_THRESHOLD = 0.1
+    VOLATILITY_THRESHOLD = 0.25
     try:
         if not os.path.exists(CONST.STOCK_LIST):
             get_stock_list_from_db()
+        total = len(open(CONST.STOCK_LIST,'rU').readlines())
+
         fs = open(CONST.STOCK_LIST)
+        count = 1
         line = fs.readline()
         while line:
+            if count == total:
+                percent = 100.0
+                print('Searching... %s [%d/%d]' % (str(percent)+'%', count, total), end='\n')
+            else:
+                percent = round(1.0 * count / total * 100, 2)
+                print('Searching... %.02f%% [%d/%d]' % (percent, count, total), end='\r')
+
             line = line.strip('\n')
             target = os.path.join(RAWDIR, str(line))
 
@@ -266,19 +276,20 @@ def get_effective_tracking_list(now=True):
                         #logger.info('%s : %s' % (line, volatility))
                         # condition 3: 最低股價的波動率小
                         if volatility < VOLATILITY_THRESHOLD:
-                            avg_max = sum(max_list) / len(max_list)
-                            avg_min = sum(min_list) / len(min_list)
+                            avg_max = np.mean(max_list)
+                            avg_min = np.mean(min_list)
                             # condition 4: 平均最高股價比平均最低股價 > 30%
                             if (avg_max - avg_min)/avg_min > PROFIT_THRESHOLD:
                                 if now:
                                     close = get_close(soup)
-                                    # 挑選當前股價適合進場的標的: 當前股價大於平均最低股價不超過5%
+                                    # 挑選當前股價適合進場的標的: 當前股價大於平均最低股價不超過10%
                                     if (close - avg_min)/avg_min < READY_TO_BUY_THRESHOLD:
                                         logger.info('%s' % line)
                                 else:
                                     logger.info('%s' % line)
 
             line = fs.readline()
+            count += 1
     except:
         logger.error(traceback.format_exc())
 
