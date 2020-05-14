@@ -3,6 +3,9 @@ import requests
 import time
 import traceback
 from app.foundation import logger
+from app.proxy import getProxy
+
+proxy = None
 
 def decode_content(data):
     txt = None
@@ -25,19 +28,25 @@ def decode_content(data):
     return txt
 
 def get(url):
+    global proxy
+
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.122 Safari/537.36'}
     retry = 0
-    while retry < 3:
+    while retry < 10:
+        if proxy is None:
+            proxy = getProxy()
         try:
-            res = requests.get(url, headers=headers, timeout=5)
+            res = requests.get(url, headers=headers, proxies={'https': f'https://{proxy}'}, timeout=5)
             if res.status_code != 200:
+                proxy = None
                 retry += 1
-                time.sleep(60)
+                logger.error("Load page failed!")
                 continue
 
             data = decode_content(res)
             return data
         except:
+            proxy = None
             retry += 1
-            logger.error(traceback.format_exc())
+            logger.error("Load page failed!")
     return None

@@ -14,7 +14,7 @@ from app.after_hours import AfterHoursInfo
 from app.api_utils import get
 from app.constants import LISTED_TYPE, GOODINFO_URL
 from app.foundation import logger
-from config import RAWDIR
+from config import DATADIR, RAWDIR
 from globals import db, update
 
 def reset_listed():
@@ -34,7 +34,9 @@ def add_stock(data):
                            LISTED_TYPE.state_mapping_reverse[data[3]],
                            data[5],
                            1))
-        db.commit()
+    else:
+        db.cursor.execute("UPDATE stock SET listed = 1 WHERE code=?", (code,))
+    db.commit()
 
 def get_stock_list_from_db():
     db.cursor.execute("SELECT * FROM stock")
@@ -45,8 +47,11 @@ def get_stock_list_from_db():
                 f.write(data[1])
                 f.write('\n')
 
-def update_listed_company(url):
-    data = get(url)
+def update_listed_company(url=None, static_data=None):
+    if url is not None:
+        data = get(url)
+    else:
+        data = static_data
     if data is not None:
         #get the first table
         df = pd.read_html(data)[0]
@@ -116,7 +121,7 @@ def add_daily(date, info):
         logger.error(f"Cannot find stock for {info}")
 
 def update_data_by_day():
-    date = '20191105'
+    date = '20200514'
 
     url = 'https://www.twse.com.tw/exchangeReport/MI_INDEX?' + \
           'response=json&' + \
