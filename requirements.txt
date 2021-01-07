@@ -14,7 +14,7 @@ idna==2.9
 immutables==0.12
 Js2Py==0.70
 loguru==0.4.1
-lxml==4.5.0
+lxml==4.6.2
 numpy==1.18.3
 pandas==1.0.3
 pefile==2019.4.18
